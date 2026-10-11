@@ -1,10 +1,14 @@
 {
-  "name": "guildbase-dashboard",
-  "version": "1.0.0",
+  "name": "recloe",
+  "version": "0.1.0",
   "private": true,
-  "description": "Discord bot configuration dashboard with Bot-Hosting.net API integration",
+  "description": "recloe community chat prototype",
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "mysql2": "^3.14.1"
   }
 }

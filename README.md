@@ -1,29 +1,26 @@
-# Guildbase — Discord Bot Dashboard
+# recloe
 
-German-language dashboard starter for managing an existing Discord bot deployment on [Bot-Hosting.net](https://bot-hosting.net/). The static UI runs on Vercel and the `api/hosting.js` serverless function proxies a small allow-listed part of the provider API.
+recloe is a German-language community chat prototype with email/password accounts and a MySQL-backed API.
 
-## Start locally
+## MySQL setup
 
-1. Install the Vercel CLI: `npm install --global vercel`
-2. In this folder run `vercel dev` (or `npm run dev`).
-3. Open the local URL, go to **Bot & Hosting**, and enter a Bot-Hosting.net developer API key.
+The project includes `schema.sql` for MySQL 8. Run it once on a persistent MySQL database. The API creates user records, bcrypt password hashes, 30-day revocable sessions, spaces, memberships, channels and channel messages there.
 
-No Vercel environment variables are required for this starter. Each dashboard user supplies their own scoped Bot-Hosting.net API key at runtime. The key is held in browser memory only; reloading the page clears it. Do not put an individual user's Discord bot token into Vercel project-wide environment variables. The token field writes `DISCORD_TOKEN` as a secret environment variable on the selected hosting deployment.
+Set these environment variables in **Vercel → Project → Settings → Environment Variables**:
 
-## API key scopes
+- `DATABASE_URL` — `mysql://USER:PASSWORD@HOST:3306/DATABASE` from your MySQL host
+- `DATABASE_SSL` — leave unset or set to `true` for a TLS connection; set to `false` only for local MySQL without TLS
 
-Create a key in Bot-Hosting.net **Account → Developer**. For this interface, grant only what you use:
+Set the same values in a local `.env` file for local development. `.env` is ignored by Git. Never commit the real connection string. The checked-in `.env.example` is only a template.
 
-- `deployments:read` — list deployments and read logs
-- `deployments:power` — start, stop, restart (`POST /deployments/:id/power` with the selected action)
-- `env:write` — set the secret `DISCORD_TOKEN` environment variable
+Deploy the folder to Vercel after the schema and variables are ready. For local use, install dependencies with `npm install` and run `npx vercel dev`.
 
-The provider API is in public beta and can change. Check [its API documentation](https://bot-hosting.net/api) before production use.
+## Accounts and sessions
 
-## Deploy to Vercel
+Registration requires an email, a password with at least 10 characters, and password confirmation. The plaintext password is never stored. The API hashes it with bcrypt and issues a random, HTTP-only, SameSite cookie. A hash of that session token is stored in MySQL, so the session survives a Vercel function restart; it expires after 30 days or when the user logs out. Users must still be able to access their persistent MySQL database for login.
 
-Import this folder/repository in Vercel, leave the framework preset as **Other**, and deploy with the root directory set to this folder. The included `vercel.json` routes the static assets and serverless API function. Alternatively, after installing the Vercel CLI, use `vercel` and then `vercel --prod`.
+## Current persistence scope
 
-## Current scope
+Accounts, spaces, text channels, channel messages, direct-message conversations and direct messages use MySQL. Friends, calls, attachments and the member roster remain prototype-only. Email ownership verification, password reset and abuse/rate-limit controls are still needed before public production use.
 
-The hosting connection, deployment listing, logs, environment-variable write, and power controls call the provider API. The Tickets, Level & XP, Team-System, and AutoMod screens are a front-end configuration prototype; persistent per-server settings, Discord OAuth, bot-side runtime code, permissions, a database, and multi-user accounts still need implementation before this can be offered as a complete public dashboard. Never advertise those module settings as live until their storage and bot integration are connected.
+The MySQL connection itself is not provisioned in this repository. You must create a database with a hosting provider, run `schema.sql`, and add its connection URL in Vercel. Do not paste database credentials into chat or commit them.
