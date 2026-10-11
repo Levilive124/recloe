@@ -1,0 +1,10 @@
+{
+  "name": "guildbase-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord bot configuration dashboard with Bot-Hosting.net API integration",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}
