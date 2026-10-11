@@ -13,13 +13,14 @@ module.exports = async function handler(req, res) {
   if (password.length < 10 || password.length > 128) return send(res, 400, { error: 'Dein Passwort muss zwischen 10 und 128 Zeichen lang sein.' });
   if (password !== confirmation) return send(res, 400, { error: 'Die Passwörter stimmen nicht überein.' });
 
-  const pool = getPool();
   const userId = randomUUID();
   const sessionToken = createSessionToken();
   const sessionHash = createHash('sha256').update(sessionToken).digest('hex');
   const passwordHash = await bcrypt.hash(password, 12);
-  const connection = await pool.getConnection();
+  let connection;
   try {
+    const pool = getPool();
+    connection = await pool.getConnection();
     await connection.beginTransaction();
     await connection.execute('INSERT INTO users (id, email, password_hash, display_name) VALUES (?, ?, ?, ?)', [userId, email, passwordHash, email.split('@')[0].slice(0, 32)]);
     const spaceId = randomUUID();
@@ -31,12 +32,13 @@ module.exports = async function handler(req, res) {
     await connection.execute('INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 30 DAY))', [randomUUID(), userId, sessionHash]);
     await connection.commit();
   } catch (error) {
-    await connection.rollback();
+    if (connection) await connection.rollback();
     if (error.code === 'ER_DUP_ENTRY') return send(res, 409, { error: 'Für diese E-Mail-Adresse gibt es bereits ein Konto.' });
-    console.error('recloe registration failed', error.code || error.message);
+    // Do not log driver messages: connection errors may include DATABASE_URL.
+    console.error('recloe registration failed', error.code || 'UNKNOWN');
     return send(res, 500, { error: 'Registrierung gerade nicht möglich. Prüfe die Datenbankverbindung.' });
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
   setSessionCookie(res, sessionToken);
   return send(res, 201, { user: { id: userId, email, displayName: email.split('@')[0].slice(0, 32) } });
